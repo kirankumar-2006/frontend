@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: '/api',
+    baseURL: import.meta.env.VITE_API_URL || '/api',
     headers: {
         'Content-Type': 'application/json'
     }
@@ -18,55 +18,33 @@ api.interceptors.request.use(
 
         return config;
     },
-    (error) => {
-        return Promise.reject(error);
-    }
+    (error) => Promise.reject(error)
 );
 
 // Handle API responses
 api.interceptors.response.use(
-    (response) => {
-        return response;
-    },
-
+    (response) => response,
     (error) => {
-
         console.error('API ERROR:', error);
 
         if (error.response) {
-
-            console.error(
-                'Status:',
-                error.response.status
-            );
-
-            console.error(
-                'Response:',
-                error.response.data
-            );
+            console.error('Status:', error.response.status);
+            console.error('Response:', error.response.data);
 
             error.message =
                 error.response.data?.message ||
                 `Server error: ${error.response.status}`;
 
-            // Only redirect when protected APIs return 401
             if (
                 error.response.status === 401 &&
-                !error.config.url.includes('/auth/')
+                !error.config?.url?.includes('/auth/')
             ) {
-                localStorage.clear();
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
                 window.location.href = '/login';
             }
-
         } else if (error.request) {
-
-            error.message =
-                'Cannot connect to the backend. Please make sure Spring Boot is running on port 8080.';
-
-        } else {
-
-            error.message =
-                error.message || 'Request failed';
+            error.message = 'Cannot connect to the backend. Please try again.';
         }
 
         return Promise.reject(error);
