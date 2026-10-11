@@ -1,0 +1,14 @@
+import {BarChart,Bar,XAxis,YAxis,Tooltip,Legend,PieChart,Pie,Cell,LineChart,Line,ResponsiveContainer,CartesianGrid} from 'recharts';
+import useFetch from '../hooks/useFetch'; import {Loading,ErrorBox,Empty,Card} from '../components/Ui.jsx'; import {money,COLORS} from '../utils/helpers';
+export default function Dashboard(){
+ const s=useFetch('/dashboard/summary'),m=useFetch('/dashboard/monthly'),c=useFetch('/dashboard/categories'),r=useFetch('/transactions',{size:5});
+ if(s.loading||m.loading||c.loading||r.loading)return <Loading/>; const err=s.error||m.error||c.error||r.error; if(err)return <ErrorBox msg={err}/>;
+ const d=s.data; const warn=d.monthlyBudget>0&&d.monthlyExpense>=d.monthlyBudget*0.8;
+ return <><h1>Dashboard</h1>{warn&&<div className="errbox">⚠ You have used {Math.round(d.monthlyExpense/d.monthlyBudget*100)}% of this month's budget.</div>}
+ <div className="cards"><Card label="Total Income" value={money(d.totalIncome)} cls="g"/><Card label="Total Expenses" value={money(d.totalExpense)} cls="r"/><Card label="Balance" value={money(d.balance)}/>
+ <Card label="Monthly Budget" value={money(d.monthlyBudget)}/><Card label="Remaining Budget" value={money(d.remainingBudget)}/>
+ <Card label="Top Category" value={d.topCategory}/><Card label="Avg Daily Expense" value={money(d.avgDailyExpense)}/><Card label="Transactions" value={d.transactionCount}/></div>
+ <div className="grid2"><div className="panel"><h3>Income vs Expense</h3>{m.data.length?<ResponsiveContainer width="100%" height={260}><BarChart data={m.data}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="label"/><YAxis/><Tooltip/><Legend/><Bar dataKey="income" fill="#10b981"/><Bar dataKey="expense" fill="#ef4444"/></BarChart></ResponsiveContainer>:<Empty text="No data yet"/>}</div>
+ <div className="panel"><h3>Expense by Category</h3>{c.data.length?<ResponsiveContainer width="100%" height={260}><PieChart><Pie data={c.data} dataKey="amount" nameKey="label" innerRadius={55} outerRadius={90}>{c.data.map((_,i)=><Cell key={i} fill={COLORS[i%COLORS.length]}/>)}</Pie><Tooltip/><Legend/></PieChart></ResponsiveContainer>:<Empty text="No expenses yet"/>}</div>
+ <div className="panel"><h3>Monthly Expense Trend</h3>{m.data.length?<ResponsiveContainer width="100%" height={260}><LineChart data={m.data}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="label"/><YAxis/><Tooltip/><Line dataKey="expense" stroke="#4f46e5" strokeWidth={2}/></LineChart></ResponsiveContainer>:<Empty text="No data yet"/>}</div>
+ <div className="panel"><h3>Recent Transactions</h3>{r.data.content.length?r.data.content.map(t=><div className="row" key={t.id}><span>{t.date} · {t.category}</span><b className={t.type==='INCOME'?'g':'r'}>{t.type==='INCOME'?'+':'-'}{money(t.amount)}</b></div>):<Empty text="No transactions yet"/>}</div></div></>;}
